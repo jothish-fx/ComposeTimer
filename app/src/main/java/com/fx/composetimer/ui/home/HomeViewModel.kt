@@ -2,6 +2,7 @@ package com.fx.composetimer.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fx.composetimer.data.datastore.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -13,7 +14,9 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class HomeViewModel @Inject constructor() : ViewModel() {
+class HomeViewModel @Inject constructor(
+    private val sessionManager: SessionManager
+) : ViewModel() {
 
     private val viewModelState = MutableStateFlow(HomeViewModelState())
 
@@ -23,6 +26,13 @@ class HomeViewModel @Inject constructor() : ViewModel() {
     )
 
     init {
+
+        viewModelScope.launch {
+            sessionManager.isDarkMode.distinctUntilChanged().collect { isDarkMode ->
+                viewModelState.update { it.copy(isDarkTheme = isDarkMode) }
+            }
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             while (true) {
                 updateTime()
@@ -39,11 +49,17 @@ class HomeViewModel @Inject constructor() : ViewModel() {
     }
 
 
-    /**Notify that an error was displayed on the screen*/
+    /** Notify that an error was displayed on the screen*/
     fun errorShown(errorMessage: String) {
         viewModelState.update { currentUiState ->
             val errorMessages = currentUiState.errorMessages.filterNot { it == errorMessage }
             currentUiState.copy(errorMessages = errorMessages)
+        }
+    }
+
+    fun toggleTheme() {
+        viewModelScope.launch {
+            sessionManager.setIsDarkMode(viewModelState.value.isDarkTheme.not())
         }
     }
 }
@@ -59,12 +75,14 @@ sealed interface HomeUiState {
     val errorMessages: List<String>
     val formattedDate: String
     val isDay: Boolean
+    val isDarkTheme: Boolean
 
     data class HasDate(
         override val isLoading: Boolean,
         override val errorMessages: List<String>,
         override val formattedDate: String,
         override val isDay: Boolean,
+        override val isDarkTheme: Boolean
     ) : HomeUiState
 }
 
@@ -75,6 +93,7 @@ data class HomeViewModelState(
     val isLoading: Boolean = false,
     val errorMessages: List<String> = listOf(),
     val localDateTime: LocalDateTime = LocalDateTime.now(),
+    val isDarkTheme: Boolean = false
 ) {
     /**
      * Converts this [HomeViewModelState] into a more strongly typed [HomeUiState] for driving
@@ -89,5 +108,6 @@ data class HomeViewModelState(
             errorMessages = errorMessages,
             formattedDate = localDateTime.format(formatter),
             isDay = localDateTime.hour in 6..17,
+            isDarkTheme = isDarkTheme
         )
 }
