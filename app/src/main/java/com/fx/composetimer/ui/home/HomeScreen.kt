@@ -2,6 +2,7 @@ package com.fx.composetimer.ui.home
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -10,25 +11,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.fx.composetimer.ui.theme.ComposeTimerTheme
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 
 @RootNavGraph(start = true) // sets this as the start destination of the default nav graph
 @Destination
 @Composable
 fun HomeScreen(
-    navigator: DestinationsNavigator, viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
-
     val state by viewModel.uiState.collectAsState()
-    HomeView(state)
+    HomeView(state) {
+        viewModel.toggleTheme()
+    }
 }
 
 @Composable
-fun HomeView(uiState: HomeUiState) {
+fun HomeView(uiState: HomeUiState, onToggleTheme: () -> Unit) {
 
     Column(
         modifier = Modifier
@@ -44,6 +45,7 @@ fun HomeView(uiState: HomeUiState) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -52,6 +54,7 @@ fun HomeView(uiState: HomeUiState) {
                 style = MaterialTheme.typography.displaySmall
             )
 
+            Switch(checked = uiState.isDarkTheme, onCheckedChange = { onToggleTheme.invoke() })
 
         }
 
@@ -70,7 +73,8 @@ fun HomePreview() {
                 errorMessages = listOf(),
                 formattedDate = "Wednesday, November 30",
                 isDay = false,
+                isDarkTheme = false
             )
-        )
+        ) {}
     }
 }
